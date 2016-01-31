@@ -4,6 +4,8 @@ An trivial proof of concept implementation of a
 [core.async](https://github.com/clojure/core.async) `timeout` like
 channel that is insensitive to clock changes.
 
+*This document is a work in progress.*
+
 ## Rationale
 
 The core.async timeout implementation internally uses absolute
