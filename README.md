@@ -61,5 +61,3 @@ Copyright © 2016 Ragnar Dahlen
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
-
-[1]: I don't actually know the design reasons behind this, so this is my guess.
