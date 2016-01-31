@@ -1,9 +1,8 @@
 # relative-timeout
 
-An proof of concept implementation of a
-[core.async](https://github.com/clojure/core.async) `timeout` channel
-that uses a single threaded `ScheduledExecutorService` to schedule and
-complete timeouts.
+An trivial proof of concept implementation of a
+[core.async](https://github.com/clojure/core.async) `timeout` like
+channel that is insensitive to clock changes.
 
 ## Rationale
 
@@ -12,24 +11,46 @@ timestamps, calculated using `System/currentTimeMillis` and is
 therefore subject to unpredictable behaviour when the system clock
 changes.
 
-This implementation provides an alternative timeout implementation,
-with different tradeoffs, but is built on JDK constructs that use
-monotonic clocks.
+This implementation provides an alternative timeout implementation
+that is built on JDK constructs that use relative time and monotonic
+clocks. Concretely, a single threaded `ScheduledExecutorService` is
+used to schedule and complete timeouts.
 
-### Tradeoffs
+### Other Differences
 
-**No sharing of channels**
-The default implementation shares channels in order to improve resouce usage<sup>1</sup>. If two ore more `timeouts` are created and set to expire at the same absolute time (within 10ms), the same underlying channel will be used for both. This means fewer channels are created. However, it also means that `timeout` channels don't necessarily have their own identity. If you create two timeouts like so:
+**No sharing of channels** The default implementation shares timeout
+channels. This means that timeouts expiring at the same absolute time
+(with a granularity of 10ms) will be the same channel instance, even
+if they were created at different times.
 
-```clojure
-(def t1 (timeout 1000)
-(Thread/sleep (timeout 500)
-(def t2 (timeout 500)
-```
+This has the following advantages:
 
-`t1` and `t2` could (depending on timing) be the exact same channel, meaning you can't for example store them separetely in a map.
+- Fewer channels are potentially created meaning less resource
+  (memory) usage
+- At most one channel needs to be closed every 10ms. This means that
+  there is an constant upper bound on the amount of work that the
+  timout worker thread needs to do. This can be important if you have
+  a large number of timeouts expiring at (almost) the same absolute
+  time.
+  
+However, there are also certain disadvantages:
 
+- Timeout channels aren't guaranteed to be distinct instances or have
+  unique identities. For example, if you create two timeouts like so:
 
+  ```clojure
+  (def t1 (timeout 1000)
+  (Thread/sleep (timeout 500)
+  (def t2 (timeout 500)
+  ```
+
+  `t1` and `t2` could (depending on timing) be the exact same channel
+  instance. This can have a number of surprising implications, for
+  example if you want to store them in a set/map, or figure out which
+  of them closed.
+- The advantages listed are only realised if you actually
+  (intentionally/unintentionally) request lots of timeouts expiring at
+  the same time.
 
 
 ## License
